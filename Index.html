@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Solitaire</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        body { font-family: sans-serif; margin: 0; padding: 0; }
+        .bg-gray-900 { background-color: #111827; }
+        .text-white { color: #fff; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-center { justify-content: center; }
+        .min-h-screen { min-height: 100vh; }
+        .p-4 { padding: 1rem; }
+        .text-4xl { font-size: 2.25rem; }
+        .font-bold { font-weight: 700; }
+        .text-center { text-align: center; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .grid { display: grid; }
+        .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .gap-4 { gap: 1rem; }
+        .w-[70px] { width: 70px; }
+        .h-[100px] { height: 100px; }
+        .bg-gray-700 { background-color: #374151; }
+        .rounded-md { border-radius: 0.375rem; }
+        .border { border-width: 1px; }
+        .border-gray-600 { border-color: #4b5563; }
+        .text-red-500 { color: #ef4444; }
+        .text-gray-200 { color: #e5e7eb; }
+        .transition-transform { transition: transform 0.2s; }
+        .transform { transform: translateZ(0); }
+        .hidden-card { visibility: hidden; }
+        .absolute { position: absolute; }
+        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .bg-green-500 { background-color: #22c55e; }
+        .hover\:bg-green-600:hover { background-color: #16a34a; }
+        .bg-gray-800 { background-color: #1f2937; }
+        .bg-opacity-75 { background-opacity: 0.75; }
+        .backdrop-blur-sm { backdrop-filter: blur(4px); }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .text-2xl { font-size: 1.5rem; }
+        .text-sm { font-size: 0.875rem; }
+        .text-gray-400 { color: #9ca3af; }
+        .max-w-md { max-width: 28rem; }
+        .w-full { width: 100%; }
+        .max-w-5xl { max-width: 64rem; }
+        .justify-between { justify-content: space-between; }
+        .space-x-4 > * + * { margin-left: 1rem; }
+        .text-xl { font-size: 1.25rem; }
+        .font-semibold { font-weight: 600; }
+        .hidden { display: none; }
+        @media (min-width: 640px) {
+            .sm\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .sm\:min-h-[400px] { min-height: 400px; }
+            .sm\:grid-cols-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        }
+        .card-stack { position: relative; }
+        .card-face-down { background: #374151; }
+        .icon-container {
+            width: 150px; height: 150px; background-color: #ff3b3b;
+            box-shadow: 0 10px 20px rgba(255, 59, 59, 0.4), 0 6px 6px rgba(255, 59, 59, 0.23);
+        }
+        .icon-container:hover { transform: scale(1.05); box-shadow: 0 14px 28px rgba(255, 59, 59, 0.5); }
+        .icon-container:active { transform: scale(0.95); box-shadow: 0 5px 10px rgba(255, 59, 59, 0.3); }
+        .icon-container svg { width: 80px; height: 80px; fill: #fff; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+    <audio id="click-sound" src="click.mp3" preload="auto" aria-hidden="true"></audio>
+    <audio id="error-sound" src="error.mp3" preload="auto" aria-hidden="true"></audio>
+
+    <div id="launcher-container" class="absolute inset-0 flex flex-col items-center justify-center w-full h-full space-y-6">
+        <div class="icon-container flex items-center justify-center rounded-full cursor-pointer transition-transform transform" onclick="openGame()" role="button" aria-label="Open Voice Solitaire">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+            </svg>
+        </div>
+        <div class="text-center max-w-md text-sm text-gray-400" role="region" aria-label="About Voice Solitaire">
+            <p>Voice Solitaire: Accessible card game for blind players. Use voice commands to play 5 levels, save progress, and track scores. Say "read about" to learn more.</p>
+        </div>
+    </div>
+
+    <div id="game-container" class="hidden w-full max-w-5xl p-6" role="main" aria-label="Voice Solitaire game">
+        <h1 class="text-4xl font-bold text-center mb-6">Voice Solitaire</h1>
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex space-x-4">
+                <span id="score-display" class="text-xl font-semibold">Score: 0</span>
+                <span id="level-display" class="text-xl font-semibold">Level: 1</span>
+                <span id="undos-display" class="text-xl font-semibold">Undos: 5</span>
+            </div>
+            <div class="flex space-x-4">
+                <button id="new-game-btn" class="px-4 py-2 bg-green-500 text-white rounded-md font-semibold hover:bg-green-600 transition-colors" tabindex="0" aria-label="Start new game">New Game</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-4 sm:grid-cols-4 gap-4 mb-8">
+            <div class="flex items-start justify-start col-span-2 space-x-4">
+                <div id="stock-pile" class="card-stack pile relative w-70 h-100" role="region" aria-label="Stock pile"></div>
+                <div id="waste-pile" class="card-stack pile relative w-70 h-100" role="region" aria-label="Waste pile"></div>
+            </div>
+            <div class="flex items-start justify-end col-span-2 space-x-4">
+                <div id="foundation-1" class="card-stack pile w-70 h-100" role="region" aria-label="Foundation pile 1"></div>
+                <div id="foundation-2" class="card-stack pile w-70 h-100" role="region" aria-label="Foundation pile 2"></div>
+                <div id="foundation-3" class="card-stack pile w-70 h-100" role="region" aria-label="Foundation pile 3"></div>
+                <div id="foundation-4" class="card-stack pile w-70 h-100" role="region" aria-label="Foundation pile 4"></div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-4 sm:grid-cols-7 gap-4">
+            <div id="tableau-1" class="card-stack pile relative min-h-[110px] sm:min-h-[400px]" role="region" aria-label="Tableau pile 1"></div>
+            <div id="tableau-2" class="card-stack pile relative min-h-[110px] sm:min-h-[400px]" role="region" aria-label="Tableau pile 2"></div>
+            <div id="tableau-3" class="card-stack pile relative min-h-[110px] sm:min-h-[400px]" role="region" aria-label="Tableau pile 3"></div>
+            <div id="tableau-4" class="card-stack pile relative min-h-[110px] sm:min-h-[400px]" role="region" aria-label="Tableau pile 4"></div>
+            <div id="tableau-5" class="card-stack pile relative min-h-[110px] sm:min-h-[400px]" role="region" aria-label="Tableau pile 5"></div>
+            <div id="tableau-6" class="card-stack pile relative min-h-[110px] sm:min-h-[400px]" role="region" aria-label="Tableau pile 6"></div>
+            <div id="tableau-7" class="card-stack pile relative min-h-[110px] sm:min-h-[400px]" role="region" aria-label="Tableau pile 7"></div>
+        </div>
+
+        <div id="messages" class="mt-8 text-center bg-gray-800 p-4 rounded-md" aria-live="polite">
+            <p>Welcome! Say "start game" to begin. Say "help" for commands.</p>
+        </div>
+
+        <div id="win-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 backdrop-blur-sm flex items-center justify-center hidden">
+            <div class="bg-gray-800 p-8 rounded-lg text-center shadow-lg">
+                <h2 class="text-2xl font-bold text-green-500 mb-4">You Won!</h2>
+                <p id="win-message" class="mb-6">Congratulations! Score: <span id="win-score"></span></p>
+                <button id="next-level-btn" class="px-6 py-3 bg-green-500 text-white rounded-md font-semibold hover:bg-green-600" tabindex="0" aria-label="Play next level">Next Level</button>
+            </div>
+        </div>
+
+        <div id="save-modal" class="fixed inset-0 bg-gray-800 bg-opacity-75 backdrop-blur-sm flex items-center justify-center hidden">
+            <div class="bg-gray-800 p-8 rounded-lg text-center shadow-lg">
+                <h2 class="text-2xl font-bold mb-4">Save Game?</h2>
+                <p class="mb-6">Say "save game" to save, or "quit game" to exit without saving.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="tone.js"></script>
+    <script>
+        let deck = [], stock = [], waste = [], foundations = [[], [], [], []], tableau = [[], [], [], [], [], [], []];
+        let currentLevel = 1, score = 0, totalScore = 0, undosLeft = 5, gameStateHistory = [];
+        let highScores = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }, gameInProgress = false;
+        const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+
+        function initializeUserData() {
+            const data = JSON.parse(localStorage.getItem('solitaireData') || '{}');
+            totalScore = data.totalScore || 0;
+            highScores = data.highScores || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+            const savedGame = data.savedGame;
+            if (savedGame && confirm("Load saved game?")) {
+                currentLevel = savedGame.level;
+                stock = savedGame.stock;
+                waste = savedGame.waste;
+                foundations = savedGame.foundations;
+                tableau = savedGame.tableau;
+                score = savedGame.score;
+                undosLeft = savedGame.undosLeft;
+                gameStateHistory = savedGame.gameStateHistory;
+                gameInProgress = true;
+                updateUI();
+                speak("Loaded saved game.");
+            }
+        }
+        function saveUserData() {
+            localStorage.setItem('solitaireData', JSON.stringify({
+                totalScore,
+                highScores,
+                savedGame: gameInProgress ? { level: currentLevel, stock, waste, foundations, tableau, score, undosLeft, gameStateHistory } : null
+            }));
+        }
+
+        const scoreDisplay = document.getElementById('score-display');
+        const levelDisplay = document.getElementById('level-display');
+        const undosDisplay = document.getElementById('undos-display');
+        const messages = document.getElementById('messages');
+        const winModal = document.getElementById('win-modal');
+        const saveModal = document.getElementById('save-modal');
+        const clickSound = document.getElementById('click-sound');
+        const errorSound = document.getElementById('error-sound');
+
+        const synth = new Tone.PolySynth(Tone.Synth).toDestination();
+        function vibrate(pattern) {
+            if ("vibrate" in navigator) navigator.vibrate(pattern);
+        }
+        function playSound(type) {
+            if (Tone.context.state !== 'running') Tone.start();
+            if (type === 'click') clickSound.play();
+            else if (type === 'error') errorSound.play();
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const SpeechSynthesis = window.SpeechSynthesis;
+        let recognition, isListening = false;
+        if (!SpeechRecognition || !SpeechSynthesis) {
+            messages.textContent = "Speech features require Chrome.";
+            alert("This game requires Chrome for voice commands.");
+        }
+        function speak(text) {
+            if (!SpeechSynthesis) return;
+            const utterance = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.speak(utterance);
+        }
+        function startListening() {
+            if (!SpeechRecognition) return;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+            recognition.onstart = () => {
+                isListening = true;
+                messages.textContent = "Listening... Say 'help' for commands.";
+                vibrate([100]);
+            };
+            recognition.onend = () => {
+                isListening = false;
+                messages.textContent = "Tap to speak again.";
+            };
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript.trim().toLowerCase();
+                processCommand(transcript);
+            };
+            recognition.onerror = (event) => {
+                messages.textContent = `Error: ${event.error}. Tap to retry.`;
+                vibrate([200, 50, 200]);
+                playSound('error');
+            };
+            recognition.start();
+        }
+
+        function createDeck() {
+            const newDeck = [];
+            for (const suit of suits) {
+                for (const value of values) {
+                    newDeck.push({ value, suit, faceUp: false, id: `${value}-${suit}` });
+                }
+            }
+            return newDeck;
+        }
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+        function deal() {
+            speak(`Starting level ${currentLevel}.`);
+            vibrate([500]);
+            deck = shuffle(createDeck());
+            stock = [...deck];
+            waste = [];
+            foundations = [[], [], [], []];
+            tableau = [[], [], [], [], [], [], []];
+            gameStateHistory = [];
+            score = 0;
+            undosLeft = 5;
+            gameInProgress = true;
+            const faceDownCounts = [1, 2, 3, 4, 5];
+            const faceDown = faceDownCounts[currentLevel - 1];
+            for (let i = 0; i < 7; i++) {
+                for (let j = 0; j <= i; j++) {
+                    const card = stock.pop();
+                    if (j >= i - faceDown) card.faceUp = true;
+                    tableau[i].push(card);
+                }
+            }
+            saveState();
+            updateUI();
+        }
+        function drawFromStock() {
+            if (stock.length > 0) {
+                const card = stock.pop();
+                card.faceUp = true;
+                waste.push(card);
+                score += 5;
+                speak(`Drew ${card.value} of ${card.suit}. Score: ${score}.`);
+                vibrate([50]);
+                playSound('click');
+            } else if (waste.length > 0) {
+                stock = waste.reverse().map(card => ({ ...card, faceUp: false }));
+                waste = [];
+                score = Math.max(0, score - 10);
+                speak("Refilled stock. Score: " + score + ".");
+                vibrate([150]);
+                playSound('click');
+            } else {
+                speak("Stock empty.");
+                vibrate([200, 50, 200]);
+                playSound('error');
+            }
+            saveState();
+            updateUI();
+        }
+        function validateTableauSequence(cards) {
+            for (let i = 1; i < cards.length; i++) {
+                const prev = cards[i - 1], curr = cards[i];
+                const isOppositeColor = (['hearts', 'diamonds'].includes(prev.suit) && ['clubs', 'spades'].includes(curr.suit)) ||
+                                       (['clubs', 'spades'].includes(prev.suit) && ['hearts', 'diamonds'].includes(curr.suit));
+                const isDescending = values.indexOf(curr.value) === values.indexOf(prev.value) - 1;
+                if (!isOppositeColor || !isDescending) return false;
+            }
+            return true;
+        }
+        function moveCard(from, to, cardId = null) {
+            let cardToMove, sourcePile, cardIndex = -1;
+            const fromMatch = from.match(/(tableau|foundation|waste|stock)\s+(\d+)?/i);
+            const toMatch = to.match(/(tableau|foundation|waste)\s+(\d+)?/i);
+            if (!fromMatch || !toMatch) {
+                speak("Invalid move. Say 'move card [name] from [pile] to [pile]'.");
+                vibrate([200, 50, 200]);
+                playSound('error');
+                return false;
+            }
+            const fromType = fromMatch[1].toLowerCase();
+            const toType = toMatch[1].toLowerCase();
+            const fromIndex = parseInt(fromMatch[2]) - 1;
+            const toIndex = parseInt(toMatch[2]) - 1;
+            if (fromType === 'waste') {
+                if (waste.length === 0) {
+                    speak("Waste pile empty.");
+                    vibrate([200, 50, 200]);
+                    playSound('error');
+                    return false;
+                }
+                cardToMove = waste[waste.length - 1];
+                sourcePile = waste;
+            } else if (fromType === 'tableau' && fromIndex >= 0 && fromIndex < 7 && tableau[fromIndex].length > 0) {
+                if (cardId) {
+                    const parsedCard = parseCardName(cardId);
+                    if (!parsedCard) {
+                        speak("Invalid card name.");
+                        vibrate([200, 50, 200]);
+                        playSound('error');
+                        return false;
+                    }
+                    cardIndex = tableau[fromIndex].findIndex(c => c.value === parsedCard.value && c.suit === parsedCard.suit);
+                    if (cardIndex === -1 || !tableau[fromIndex][cardIndex].faceUp) {
+                        speak("Card not found or not face-up.");
+                        vibrate([200, 50, 200]);
+                        playSound('error');
+                        return false;
+                    }
+                    cardToMove = tableau[fromIndex][cardIndex];
+                    sourcePile = tableau[fromIndex];
+                } else {
+                    cardToMove = tableau[fromIndex][tableau[fromIndex].length - 1];
+                    sourcePile = tableau[fromIndex];
+                }
+            } else {
+                speak("Source pile invalid or empty.");
+                vibrate([200, 50, 200]);
+                playSound('error');
+                return false;
+            }
+            let moveSuccessful = false;
+            if (toType === 'foundation' && toIndex >= 0 && toIndex < 4) {
+                if (canMoveToFoundation(cardToMove, foundations[toIndex])) {
+                    foundations[toIndex].push(sourcePile.pop());
+                    score += 10;
+                    speak(`Moved ${cardToMove.value} of ${cardToMove.suit} to foundation ${toIndex + 1}. Score: ${score}.`);
+                    vibrate([50]);
+                    playSound('click');
+                    moveSuccessful = true;
+                } else {
+                    speak(foundations[toIndex].length === 0 ? "Foundation empty, only Ace." : "Invalid foundation move.");
+                    playSound('error');
+                }
+            } else if (toType === 'tableau' && toIndex >= 0 && toIndex < 7) {
+                let cardsToMove = [];
+                if (sourcePile === waste) {
+                    cardsToMove = [waste[waste.length - 1]];
+                } else if (cardIndex !== -1) {
+                    cardsToMove = tableau[fromIndex].slice(cardIndex);
+                    if (!validateTableauSequence(cardsToMove)) {
+                        speak("Invalid tableau sequence.");
+                        vibrate([200, 50, 200]);
+                        playSound('error');
+                        return false;
+                    }
+                } else {
+                    cardsToMove = [sourcePile[sourcePile.length - 1]];
+                }
+                if (canMoveToTableau(cardsToMove, tableau[toIndex])) {
+                    if (sourcePile === waste) {
+                        tableau[toIndex].push(sourcePile.pop());
+                    } else if (cardIndex !== -1) {
+                        tableau[toIndex].push(...sourcePile.splice(cardIndex));
+                    } else {
+                        tableau[toIndex].push(sourcePile.pop());
+                    }
+                    score += 5;
+                    speak(`Moved ${cardsToMove[0].value} of ${cardsToMove[0].suit} to tableau ${toIndex + 1}. Score: ${score}.`);
+                    vibrate([50]);
+                    playSound('click');
+                    moveSuccessful = true;
+                } else {
+                    speak("Invalid tableau move.");
+                    playSound('error');
+                }
+            } else {
+                speak("Invalid destination.");
+                vibrate([200, 50, 200]);
+                playSound('error');
+            }
+            if (moveSuccessful) {
+                if (sourcePile === tableau[fromIndex] && sourcePile.length > 0 && !sourcePile[sourcePile.length - 1].faceUp) {
+                    sourcePile[sourcePile.length - 1].faceUp = true;
+                    score += 5;
+                    speak(`Flipped a new card on tableau ${fromIndex + 1}. Score: ${score}.`);
+                }
+                saveState();
+                updateUI();
+                checkForWin();
+            } else {
+                vibrate([200, 50, 200]);
+                playSound('error');
+            }
+        }
+        function canMoveToFoundation(card, foundation) {
+            if (foundation.length === 0) return card.value === 'A';
+            const topCard = foundation[foundation.length - 1];
+            return card.suit === topCard.suit && values.indexOf(card.value) === values.indexOf(topCard.value) + 1;
+        }
+        function canMoveToTableau(cardsToMove, destinationPile) {
+            const topCard = cardsToMove[0];
+            if (destinationPile.length === 0) return topCard.value === 'K';
+            const lastCard = destinationPile[destinationPile.length - 1];
+            const isOppositeColor = (['hearts', 'diamonds'].includes(topCard.suit) && ['clubs', 'spades'].includes(lastCard.suit)) ||
+                                    (['clubs', 'spades'].includes(topCard.suit) && ['hearts', 'diamonds'].includes(lastCard.suit));
+            const isPreviousValue = values.indexOf(topCard.value) === values.indexOf(lastCard.value) - 1;
+            return isOppositeColor && isPreviousValue;
+        }
+        function saveState() {
+            if (gameStateHistory.length >= 10) gameStateHistory.shift();
+            gameStateHistory.push(JSON.stringify({
+                stock: [...stock],
+                waste: [...waste],
+                foundations: JSON.parse(JSON.stringify(foundations)),
+                tableau: JSON.parse(JSON.stringify(tableau)),
+                score
+            }));
+        }
+        function undoMove() {
+            if (gameStateHistory.length <= 1) {
+                speak("Cannot undo, at start.");
+                vibrate([200, 50, 200]);
+                playSound('error');
+                return;
+            }
+            if (undosLeft > 0) {
+                gameStateHistory.pop();
+                const prevState = JSON.parse(gameStateHistory[gameStateHistory.length - 1]);
+                stock = prevState.stock;
+                waste = prevState.waste;
+                foundations = prevState.foundations;
+                tableau = prevState.tableau;
+                score = prevState.score;
+                undosLeft--;
+                updateUI();
+                speak(`Undone. ${undosLeft} undos left. Score: ${score}.`);
+                vibrate([100]);
+                playSound('click');
+            } else {
+                speak("No undos left.");
+                vibrate([200, 50, 200]);
+                playSound('error');
+            }
+        }
+        function checkForWin() {
+            if (foundations.every(f => f.length === 13)) {
+                gameInProgress = false;
+                totalScore += score;
+                if (score > highScores[currentLevel]) {
+                    highScores[currentLevel] = score;
+                    speak(`New high score for level ${currentLevel}: ${score}!`);
+                } else {
+                    speak(`You won level ${currentLevel}! Score: ${score}.`);
+                }
+                saveUserData();
+                winModal.classList.remove('hidden');
+                document.getElementById('win-score').textContent = score;
+                if (currentLevel < 5) {
+                    document.getElementById('win-message').textContent = `Congratulations! Score: ${score}. Say "next level" to play level ${currentLevel + 1}.`;
+                    speak(`Say "next level" to play level ${currentLevel + 1}.`);
+                } else {
+                    document.getElementById('win-message').textContent = `Congratulations! Score: ${score}. All levels completed!`;
+                    speak("All levels completed!");
+                }
+                vibrate([100, 50, 100, 50, 100]);
+            }
+        }
+        function describeBoard() {
+            let description = `Level ${currentLevel}, Score: ${score}, Undos: ${undosLeft}. `;
+            if (stock.length > 0) description += `${stock.length} cards in stock. `;
+            if (waste.length > 0) description += `Waste top: ${waste[waste.length - 1].value} of ${waste[waste.length - 1].suit}. `;
+            foundations.forEach((f, i) => {
+                description += f.length > 0 ? `Foundation ${i + 1}: ${f[f.length - 1].value} of ${f[f.length - 1].suit}. ` : `Foundation ${i + 1}: empty. `;
+            });
+            tableau.forEach((t, i) => {
+                const topFaceUp = t.filter(c => c.faceUp);
+                description += topFaceUp.length > 0 ? `Tableau ${i + 1} top: ${topFaceUp[topFaceUp.length - 1].value} of ${topFaceUp[topFaceUp.length - 1].suit}. ` : `Tableau ${i + 1}: empty or face-down. `;
+            });
+            speak(description);
+        }
+
+        function createCardElement(card, isTopCard) {
+            const cardEl = document.createElement('div');
+            cardEl.classList.add('card', 'w-[70px]', 'h-[100px]', 'bg-gray-700', 'rounded-md', 'border', 'border-gray-600', 'flex', 'items-center', 'justify-center', 'text-xl', 'font-bold', 'transition-transform', 'transform');
+            if (card.faceUp) {
+                cardEl.textContent = `${card.value}`;
+                cardEl.classList.add(['hearts', 'diamonds'].includes(card.suit) ? 'text-red-500' : 'text-gray-200');
+            } else {
+                cardEl.classList.add('card-face-down');
+            }
+            cardEl.setAttribute('data-card', card.id);
+            if (!isTopCard) cardEl.classList.add('hidden-card');
+            return cardEl;
+        }
+        function renderPiles() {
+            document.querySelectorAll('.pile').forEach(pile => {
+                pile.innerHTML = '';
+                pile.classList.remove('empty', 'bg-gray-800', 'border-dashed', 'border-2', 'border-gray-600');
+            });
+            const stockPileEl = document.getElementById('stock-pile');
+            const wastePileEl = document.getElementById('waste-pile');
+            if (stock.length > 0) {
+                const cardEl = document.createElement('div');
+                cardEl.classList.add('card', 'w-[70px]', 'h-[100px]', 'card-face-down');
+                stockPileEl.appendChild(cardEl);
+            } else {
+                stockPileEl.classList.add('empty', 'bg-gray-800', 'border-dashed', 'border-2', 'border-gray-600');
+            }
+            if (waste.length > 0) {
+                wastePileEl.appendChild(createCardElement(waste[waste.length - 1], true));
+            } else {
+                wastePileEl.classList.add('empty', 'bg-gray-800', 'border-dashed', 'border-2', 'border-gray-600');
+            }
+            foundations.forEach((pile, i) => {
+                const pileEl = document.getElementById(`foundation-${i + 1}`);
+                if (pile.length > 0) {
+                    pileEl.appendChild(createCardElement(pile[pile.length - 1], true));
+                } else {
+                    pileEl.classList.add('empty', 'bg-gray-800', 'border-dashed', 'border-2', 'border-gray-600');
+                }
+            });
+            tableau.forEach((pile, i) => {
+                const pileEl = document.getElementById(`tableau-${i + 1}`);
+                pile.forEach((card, j) => {
+                    const cardEl = createCardElement(card, j === pile.length - 1);
+                    cardEl.style.transform = `translateY(${j * 20}px)`;
+                    cardEl.style.zIndex = j;
+                    pileEl.appendChild(cardEl);
+                });
+                if (pile.length === 0) {
+                    pileEl.classList.add('empty', 'bg-gray-800', 'border-dashed', 'border-2', 'border-gray-600');
+                }
+            });
+        }
+        function updateUI() {
+            scoreDisplay.textContent = `Score: ${score} (Total: ${totalScore})`;
+            levelDisplay.textContent = `Level: ${currentLevel}`;
+            undosDisplay.textContent = `Undos: ${undosLeft}`;
+            renderPiles();
+        }
+
+        function parseCardName(text) {
+            const valueMatch = text.match(/(ace|ten|2|3|4|5|6|7|8|9|10|jack|queen|king)/i);
+            const suitMatch = text.match(/(hearts|diamonds|clubs|spades)/i);
+            if (!valueMatch || !suitMatch) return null;
+            let value = valueMatch[0].toLowerCase();
+            switch (value) {
+                case 'ace': value = 'A'; break;
+                case 'ten': value = '10'; break;
+                case 'jack': value = 'J'; break;
+                case 'queen': value = 'Q'; break;
+                case 'king': value = 'K'; break;
+                default: value = value.toUpperCase();
+            }
+            return { value, suit: suitMatch[0].toLowerCase() };
+        }
+        function processCommand(command) {
+            if (command.includes('start game')) {
+                if (gameInProgress) {
+                    saveModal.classList.remove('hidden');
+                    speak("Game in progress. Say 'save game' or 'quit game'.");
+                } else {
+                    deal();
+                    speak("Game started. Say 'draw card' or 'move card'.");
+                }
+            } else if (command.includes('help')) {
+                speak("Commands: 'start game', 'draw card', 'move card [name] from tableau [number] to tableau [number]', 'move card [name] to foundation [number]', 'move from waste to foundation [number]', 'move from waste to tableau [number]', 'undo', 'describe board', 'read about', 'save game', 'quit game', 'next level'.");
+            } else if (command.includes('read about')) {
+                speak("Voice Solitaire is an accessible card game for blind players. Play 5 levels, save progress, and track scores. Use voice commands to move cards, undo up to 5 times, and hear the board state.");
+                vibrate([100]);
+            } else if (command.includes('save game')) {
+                if (gameInProgress) {
+                    saveUserData();
+                    speak("Game saved. Say 'quit game' to exit or continue playing.");
+                    saveModal.classList.add('hidden');
+                    vibrate([100]);
+                    playSound('click');
+                } else {
+                    speak("No game to save.");
+                    vibrate([200, 50, 200]);
+                    playSound('error');
+                }
+            } else if (command.includes('quit game')) {
+                if (gameInProgress) {
+                    saveModal.classList.add('hidden');
+                    gameInProgress = false;
+                    localStorage.setItem('solitaireData', JSON.stringify({ totalScore, highScores, savedGame: null }));
+                    document.getElementById('game-container').classList.add('hidden');
+                    document.getElementById('launcher-container').classList.remove('hidden');
+                    speak("Game ended without saving.");
+                    vibrate([200, 50, 200]);
+                    playSound('error');
+                } else {
+                    speak("No game to quit.");
+                    vibrate([200, 50, 200]);
+                    playSound('error');
+                }
+            } else if (command.includes('next level')) {
+                if (winModal.classList.contains('hidden')) {
+                    speak("Finish the current level to proceed.");
+                    vibrate([200, 50, 200]);
+                    playSound('error');
+                } else if (currentLevel < 5) {
+                    currentLevel++;
+                    winModal.classList.add('hidden');
+                    deal();
+                    speak(`Starting level ${currentLevel}, a bit harder.`);
+                    vibrate([100, 50, 100]);
+                    playSound('click');
+                } else {
+                    speak("All levels completed.");
+                    vibrate([200, 50, 200]);
+                    playSound('error');
+                }
+            } else if (command.includes('draw card')) {
+                if (gameInProgress) drawFromStock();
+                else speak("Start a game first.");
+            } else if (command.includes('undo')) {
+                if (gameInProgress) undoMove();
+                else speak("Start a game first.");
+            } else if (command.includes('describe board')) {
+                if (gameInProgress) describeBoard();
+                else speak("Start a game first.");
+            } else if (command.includes('move')) {
+                if (!gameInProgress) {
+                    speak("Start a game first.");
+                    vibrate([200, 50, 200]);
+                    playSound('error');
+                    return;
+                }
+                const cardMatch = command.match(/move card (.+) from (.+) to (.+)/);
+                if (cardMatch) {
+                    const cardName = cardMatch[1];
+                    const from = cardMatch[2];
+                    const to = cardMatch[3];
+                    moveCard(from, to, cardName);
+                } else {
+                    const simpleMoveMatch = command.match(/move from (.+) to (.+)/);
+                    if (simpleMoveMatch) {
+                        const from = simpleMoveMatch[1];
+                        const to = simpleMoveMatch[2];
+                        moveCard(from, to);
+                    } else {
+                        speak("Move unclear. Try 'move card [name] from [pile] to [pile]'.");
+                        vibrate([200, 50, 200]);
+                        playSound('error');
+                    }
+                }
+            } else {
+                speak("Command not recognized. Say 'help'.");
+                vibrate([200, 50, 200]);
+                playSound('error');
+            }
+        }
+
+        function openGame() {
+            document.getElementById('launcher-container').classList.add('hidden');
+            document.getElementById('game-container').classList.remove('hidden');
+            document.body.onclick = () => {
+                if (!isListening) startListening();
+            };
+            document.getElementById('new-game-btn').onclick = () => {
+                if (gameInProgress) {
+                    saveModal.classList.remove('hidden');
+                    speak("Game in progress. Say 'save game' or 'quit game'.");
+                } else {
+                    deal();
+                }
+            };
+            document.getElementById('next-level-btn').onclick = () => {
+                if (currentLevel < 5) {
+                    currentLevel++;
+                    winModal.classList.add('hidden');
+                    deal();
+                    speak(`Starting level ${currentLevel}, a bit harder.`);
+                } else {
+                    speak("All levels completed.");
+                }
+            };
+            if (gameInProgress) updateUI();
+            else deal();
+        }
+
+        window.onload = () => {
+            initializeUserData();
+            window.addEventListener('beforeunload', (e) => {
+                if (gameInProgress) {
+                    e.preventDefault();
+                    saveModal.classList.remove('hidden');
+                    speak("Game in progress. Say 'save game' or 'quit game'.");
+                    e.returnValue = '';
+                }
+            });
+        };
+    </script>
+<script src="game.js"></script>
+</body>
+</html>

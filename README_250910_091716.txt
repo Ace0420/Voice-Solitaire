@@ -1,0 +1,40 @@
+Voice Solitaire
+==============
+A card game for blind players using voice commands and sounds.
+
+Setup:
+1. Copy the voice-solitaire folder to your phone (Internal Storage).
+2. Open My Files > voice-solitaire > Tap index.html > Choose Chrome.
+3. In Chrome, tap the 3-dot menu > Add to Home Screen > Name it "Voice Solitaire".
+4. Turn on TalkBack (Settings > Accessibility > TalkBack > On).
+5. Tap the Voice Solitaire icon to play.
+6. Say commands like "start game", "draw card", "undo", or "describe board".
+
+Features:
+- 5 levels (easy to hard).
+- 5 undos per game.
+- Saves game when you exit (say "save game" or "quit game").
+- Tracks score for each game and total, with high score announcements.
+- Works offline.
+- Supports Android (Chrome) and iPhone (Safari).
+
+Commands:
+- "start game": Start a new game.
+- "draw card": Draw a card from the stock.
+- "move card [name] from tableau [number] to tableau [number]": Move a card.
+- "move card [name] to foundation [number]": Move to foundation.
+- "move from waste to foundation [number]": Move waste card.
+- "undo": Undo last move (5 times).
+- "describe board": Hear game state.
+- "read about": Hear about the game.
+- "save game": Save progress.
+- "quit game": Exit without saving.
+- "next level": Play next level after winning.
+
+Notes:
+- Use Chrome for voice commands.
+- Scores and games save on your phone.
+- To update, replace the voice-solitaire folder.
+- For personal use only. No resale.
+
+Contact: acejames419@gmail.com
