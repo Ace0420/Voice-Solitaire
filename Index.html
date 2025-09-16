@@ -1,257 +1,741 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Voice Solitaire - Accessible Card Game</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Solitaire for Screen Readers</title>
   <style>
-    body { font-family: sans-serif; background: #111827; color: #fff; margin: 0; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-    .container { max-width: 420px; width: 100%; margin-top: 3em; padding: 2em; background: #222; border-radius: 1em; box-shadow: 0 0 24px #0007; }
-    .center { text-align: center; }
-    .btn { background: #22c55e; color: #fff; font-size: 1.2em; padding: 0.8em 2em; border: none; border-radius: 0.5em; margin: 1em 0; cursor: pointer; }
-    .btn:active { background: #16a34a; }
-    .status { margin: 1em 0; font-size: 1.1em; }
-    .pile { margin: 1em 0; }
-    .hidden { display: none; }
-    .msg { background: #1f2937; padding: 1em; border-radius: 0.5em; margin-bottom: 1em; }
-    .instructions { color: #9ca3af; font-size: 1em; margin-top: 1em; }
-    @media (max-width: 480px) { .container { padding: 1em; } }
+    body {
+      font-family: Arial, sans-serif;
+      background: #1a1a2e;
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #16213e;
+      padding: 30px;
+      border-radius: 10px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #60a5fa;
+      margin-bottom: 30px;
+    }
+
+    .main-controls {
+      text-align: center;
+      margin: 30px 0;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #3b82f6, #60a5fa);
+      color: white;
+      border: none;
+      padding: 15px 25px;
+      margin: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn:hover, .btn:focus {
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+      outline: 2px solid #60a5fa;
+    }
+
+    .btn:disabled {
+      background: #6b7280;
+      cursor: not-allowed;
+    }
+
+    .command-input {
+      width: 100%;
+      max-width: 400px;
+      padding: 15px;
+      margin: 20px 0;
+      background: #374151;
+      border: 2px solid #4b5563;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+    }
+
+    .command-input:focus {
+      outline: none;
+      border-color: #60a5fa;
+    }
+
+    .status {
+      background: #374151;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      border-left: 4px solid #60a5fa;
+    }
+
+    .error {
+      border-left-color: #ef4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .success {
+      border-left-color: #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .quick-commands {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    .speak-btn {
+      background: #10b981;
+      margin: 5px;
+    }
+
+    .speak-btn:hover, .speak-btn:focus {
+      background: #059669;
+    }
+
+    *:focus {
+      outline: 3px solid #60a5fa;
+      outline-offset: 2px;
+    }
   </style>
 </head>
 <body>
-  <div class="container" id="main">
-    <h1 class="center">Voice Solitaire</h1>
-    <div id="msg" class="msg center">Say "start game" or tap Start. Say "help" anytime.</div>
-    <button id="startBtn" class="btn" aria-label="Start Game">Start</button>
-    <div id="status" class="status center hidden"></div>
-    <div id="board" class="hidden">
-      <div id="stock" class="pile"></div>
-      <div id="waste" class="pile"></div>
-      <div id="foundations" class="pile"></div>
-      <div id="tableau" class="pile"></div>
-      <button id="drawBtn" class="btn" aria-label="Draw Card">Draw Card</button>
-      <button id="undoBtn" class="btn" aria-label="Undo">Undo</button>
-      <button id="describeBtn" class="btn" aria-label="Describe Board">Describe</button>
+  <div class="container">
+    <h1>🎴 Voice Solitaire</h1>
+    
+    <!-- Status and announcements for screen readers -->
+    <div role="status" aria-live="polite" id="announcements" class="sr-only"></div>
+    <div role="log" aria-live="assertive" id="gameLog" class="sr-only"></div>
+    
+    <div class="status" id="status" role="alert">
+      Welcome to Voice Solitaire! This game is designed for screen reader users. Press Tab to navigate or click "New Game" to start.
     </div>
-    <div class="instructions center">
-      Voice commands: "start game", "draw card", "move card", "undo", "describe board", "save game", "quit game", "help"
+
+    <div class="main-controls">
+      <button class="btn" onclick="startNewGame()" accesskey="n">
+        <u>N</u>ew Game
+      </button>
+      <button class="btn" onclick="speakInstructions()" accesskey="i">
+        <u>I</u>nstructions
+      </button>
+      <button class="btn" onclick="toggleSpeech()" id="speechToggle" accesskey="s">
+        <u>S</u>peech: ON
+      </button>
+    </div>
+
+    <!-- Text input for commands -->
+    <div style="text-align: center;">
+      <label for="commandInput" class="sr-only">Enter voice command</label>
+      <input 
+        type="text" 
+        id="commandInput" 
+        class="command-input" 
+        placeholder="Type command (e.g., 'draw card', 'move 1 to 3')"
+        accesskey="c"
+      >
+      <button class="btn" onclick="executeTypedCommand()" accesskey="e">
+        <u>E</u>xecute Command
+      </button>
+    </div>
+
+    <!-- Quick action buttons -->
+    <div class="quick-commands">
+      <button class="btn" onclick="executeCommand('draw card')" accesskey="d">
+        <u>D</u>raw Card
+      </button>
+      <button class="btn" onclick="executeCommand('describe board')" accesskey="b">
+        Describe <u>B</u>oard
+      </button>
+      <button class="btn" onclick="executeCommand('hint')" accesskey="h">
+        Get <u>H</u>int
+      </button>
+      <button class="btn speak-btn" onclick="repeatLastMessage()" accesskey="r">
+        <u>R</u>epeat Last
+      </button>
+    </div>
+
+    <!-- Help section -->
+    <div class="status">
+      <h2>Available Commands</h2>
+      <ul>
+        <li><strong>new game</strong> - Start a fresh game</li>
+        <li><strong>draw card</strong> - Draw from deck to waste pile</li>
+        <li><strong>describe board</strong> - Hear complete game state</li>
+        <li><strong>move X to Y</strong> - Move card from column X to column Y (1-7)</li>
+        <li><strong>waste to X</strong> - Move waste pile card to column X</li>
+        <li><strong>waste to foundation</strong> - Move waste card to foundation</li>
+        <li><strong>column X to foundation</strong> - Move from column X to foundation</li>
+        <li><strong>hint</strong> - Get a move suggestion</li>
+        <li><strong>score</strong> - Hear current score and moves</li>
+      </ul>
     </div>
   </div>
-  <audio id="click-sound" src="click.mp3" preload="auto"></audio>
-  <audio id="error-sound" src="error.mp3" preload="auto"></audio>
+
   <script>
-    // Minimal Solitaire state
-    let deck = [], stock = [], waste = [], foundations = [[],[],[],[]], tableau = [[],[],[],[],[],[],[]];
-    let score = 0, undosLeft = 5, gameInProgress = false, history = [];
-    const suits = ['hearts', 'diamonds', 'clubs', 'spades'];
-    const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+    // Global variables
+    let game = null;
+    let speechEnabled = true;
+    let lastSpokenMessage = '';
+    let moveHistory = [];
 
-    // UI elements
-    const startBtn = document.getElementById('startBtn');
-    const msg = document.getElementById('msg');
-    const status = document.getElementById('status');
-    const boardEl = document.getElementById('board');
-    const stockEl = document.getElementById('stock');
-    const wasteEl = document.getElementById('waste');
-    const foundationsEl = document.getElementById('foundations');
-    const tableauEl = document.getElementById('tableau');
-    const drawBtn = document.getElementById('drawBtn');
-    const undoBtn = document.getElementById('undoBtn');
-    const describeBtn = document.getElementById('describeBtn');
-    const clickSound = document.getElementById('click-sound');
-    const errorSound = document.getElementById('error-sound');
+    // Helper functions first
+    function announceToScreenReader(message) {
+      document.getElementById('announcements').textContent = message;
+    }
 
-    // Accessibility (Speech)
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    let recognition, isListening = false;
-    function speak(text) {
-      if ('speechSynthesis' in window) {
-        const u = new SpeechSynthesisUtterance(text);
-        window.speechSynthesis.speak(u);
+    function logGameAction(message) {
+      document.getElementById('gameLog').textContent = message;
+    }
+
+    function updateStatus(message, type = 'info') {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = 'status';
+      
+      if (type === 'error') {
+        status.classList.add('error');
+      } else if (type === 'success') {
+        status.classList.add('success');
       }
-      msg.textContent = text;
-    }
-    function playSound(type) {
-      if (type === 'click') clickSound.play();
-      if (type === 'error') errorSound.play();
     }
 
-    // Game logic
-    function shuffle(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+    function speak(text, priority = false) {
+      lastSpokenMessage = text;
+      
+      if (!speechEnabled) {
+        updateStatus(text);
+        return;
       }
-      return array;
+
+      // Try to use speech synthesis if available
+      if (window.speechSynthesis && window.SpeechSynthesisUtterance) {
+        try {
+          if (priority) {
+            window.speechSynthesis.cancel();
+          }
+          
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.rate = 0.8;
+          utterance.volume = 0.9;
+          utterance.pitch = 1.0;
+          
+          window.speechSynthesis.speak(utterance);
+          updateStatus(text);
+        } catch (error) {
+          console.warn('Speech synthesis failed:', error);
+          updateStatus(text);
+        }
+      } else {
+        updateStatus(text);
+        announceToScreenReader(text);
+      }
     }
-    function createDeck() {
-      const d = [];
-      for (const s of suits) for (const v of values) d.push({value:v, suit:s, faceUp:false});
-      return d;
+
+    function repeatLastMessage() {
+      if (lastSpokenMessage) {
+        speak(lastSpokenMessage, true);
+      } else {
+        speak('No previous message to repeat.');
+      }
     }
-    function deal() {
-      deck = shuffle(createDeck());
-      stock = [...deck];
-      waste = [];
-      foundations = [[],[],[],[]];
-      tableau = [[],[],[],[],[],[],[]];
-      score = 0;
-      undosLeft = 5;
-      gameInProgress = true;
-      for (let i = 0; i < 7; i++) {
-        for (let j = 0; j <= i; j++) {
-          const card = stock.pop();
-          card.faceUp = j === i;
-          tableau[i].push(card);
+
+    function toggleSpeech() {
+      speechEnabled = !speechEnabled;
+      const toggle = document.getElementById('speechToggle');
+      toggle.textContent = speechEnabled ? 'Speech: ON' : 'Speech: OFF';
+      speak(speechEnabled ? 'Speech enabled' : 'Speech disabled', true);
+    }
+
+    function executeTypedCommand() {
+      const input = document.getElementById('commandInput');
+      const command = input.value.trim();
+      
+      if (command) {
+        executeCommand(command);
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function executeCommand(command) {
+      const cmd = command.toLowerCase();
+      logGameAction(`Command executed: ${command}`);
+
+      if (cmd.includes('new') || cmd.includes('start')) {
+        startNewGame();
+      } else if (cmd.includes('instruction') || cmd.includes('help')) {
+        speakInstructions();
+      } else if (!game) {
+        speak('No game active. Say "new game" to start playing.');
+      } else if (cmd.includes('draw') || cmd === 'draw' || cmd === 'd') {
+        game.drawCard();
+      } else if (cmd.includes('describe') || cmd.includes('board') || cmd.includes('state')) {
+        game.describeBoard();
+      } else if (cmd.includes('hint') || cmd === 'hint' || cmd === 'h') {
+        game.getHint();
+      } else if (cmd.includes('score') || cmd.includes('stat')) {
+        speak(`Current score: ${game.score} points. Moves made: ${game.moves}.`);
+      } else if (cmd.includes('foundation')) {
+        handleFoundationMove(cmd);
+      } else if (cmd.includes('waste') && cmd.includes('to')) {
+        handleWasteMove(cmd);
+      } else if (cmd.includes('move') || /\d+.*to.*\d+/.test(cmd)) {
+        handleTableauMove(cmd);
+      } else {
+        speak(`Command "${command}" not recognized. Say "instructions" for help.`);
+      }
+    }
+
+    function handleFoundationMove(cmd) {
+      if (cmd.includes('waste')) {
+        game.wasteToFoundation();
+      } else {
+        const colMatch = cmd.match(/(?:column\s*)?(\d+)/);
+        if (colMatch) {
+          const col = parseInt(colMatch[1]) - 1;
+          game.tableauToFoundation(col);
+        } else {
+          speak('Specify which column to move to foundation.');
         }
       }
-      saveHistory();
-      updateUI();
-      speak("Game started. Say draw card, move card, undo, describe board, or help.");
     }
 
-    function saveHistory() {
-      if (history.length > 10) history.shift();
-      history.push(JSON.stringify({stock, waste, foundations, tableau, score, undosLeft}));
-    }
-    function undo() {
-      if (history.length <= 1 || undosLeft <= 0) {
-        speak("No undos left.");
-        playSound('error');
-        return;
+    function handleWasteMove(cmd) {
+      const colMatch = cmd.match(/to\s*(?:column\s*)?(\d+)/);
+      if (colMatch) {
+        const col = parseInt(colMatch[1]) - 1;
+        game.wasteToTableau(col);
+      } else {
+        speak('Specify destination column.');
       }
-      history.pop();
-      const prev = JSON.parse(history[history.length-1]);
-      stock = prev.stock;
-      waste = prev.waste;
-      foundations = prev.foundations;
-      tableau = prev.tableau;
-      score = prev.score;
-      undosLeft = prev.undosLeft - 1;
-      updateUI();
-      speak(`Undone. ${undosLeft} undos left.`);
-      playSound('click');
     }
-    function drawCard() {
-      if (stock.length > 0) {
-        const card = stock.pop();
+
+    function handleTableauMove(cmd) {
+      const numbers = cmd.match(/(\d+).*?(\d+)/);
+      if (numbers && numbers.length >= 3) {
+        const from = parseInt(numbers[1]) - 1;
+        const to = parseInt(numbers[2]) - 1;
+        game.moveCard(from, to);
+      } else {
+        speak('Specify both columns, like "move 1 to 3".');
+      }
+    }
+
+    function speakInstructions() {
+      const instructions = `
+        Voice Solitaire Instructions:
+        This is Klondike Solitaire. Goal: Move all 52 cards to four foundation piles.
+        Start with Aces, build up to Kings by suit.
+        
+        Commands: new game, draw card, describe board, move 1 to 3, waste to 5, hint.
+        In columns, place cards descending with alternating colors.
+        Only Kings go in empty columns.
+        
+        Press N for new game, D to draw, B for board, H for hint.
+      `;
+      speak(instructions.trim());
+    }
+
+    function startNewGame() {
+      game = new AccessibleSolitaireGame();
+      moveHistory = [];
+      speak('New Klondike Solitaire game started! Seven columns dealt. Say "describe board" for layout.', true);
+      announceToScreenReader('New game started');
+    }
+
+    // Solitaire Game Class
+    class AccessibleSolitaireGame {
+      constructor() {
+        this.deck = this.createDeck();
+        this.shuffle();
+        this.waste = [];
+        this.foundations = [[], [], [], []];
+        this.tableau = [[], [], [], [], [], [], []];
+        this.moves = 0;
+        this.score = 0;
+        this.deal();
+      }
+
+      createDeck() {
+        const suits = ['Spades', 'Hearts', 'Diamonds', 'Clubs'];
+        const ranks = ['Ace', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'Jack', 'Queen', 'King'];
+        const deck = [];
+        
+        suits.forEach(suit => {
+          ranks.forEach((rank, index) => {
+            deck.push({
+              suit, rank, 
+              value: index + 1,
+              color: (suit === 'Hearts' || suit === 'Diamonds') ? 'red' : 'black',
+              faceUp: false
+            });
+          });
+        });
+        
+        return deck;
+      }
+
+      shuffle() {
+        for (let i = this.deck.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+        }
+      }
+
+      deal() {
+        for (let col = 0; col < 7; col++) {
+          for (let row = 0; row <= col; row++) {
+            const card = this.deck.pop();
+            if (row === col) card.faceUp = true;
+            this.tableau[col].push(card);
+          }
+        }
+      }
+
+      drawCard() {
+        this.moves++;
+        
+        if (this.deck.length === 0) {
+          if (this.waste.length === 0) {
+            speak('Both deck and waste pile are empty.');
+            return;
+          }
+          
+          this.deck = [...this.waste.reverse()];
+          this.deck.forEach(card => card.faceUp = false);
+          this.waste = [];
+          speak('Recycled waste back to deck.');
+          return;
+        }
+
+        const card = this.deck.pop();
         card.faceUp = true;
-        waste.push(card);
-        score += 5;
-        speak(`Drew ${card.value} of ${card.suit}.`);
-        playSound('click');
-      } else if (waste.length > 0) {
-        stock = waste.reverse().map(c => {c.faceUp=false; return c;});
-        waste = [];
-        speak("Stock refilled.");
-        playSound('click');
-      } else {
-        speak("Stock empty.");
-        playSound('error');
+        this.waste.push(card);
+        
+        speak(`Drew ${card.rank} of ${card.suit}. Deck has ${this.deck.length} cards left.`);
       }
-      saveHistory();
-      updateUI();
-    }
-    function describeBoard() {
-      let txt = `Score: ${score}. Undos: ${undosLeft}. `;
-      txt += `Stock: ${stock.length} cards. `;
-      txt += waste.length ? `Waste top: ${waste[waste.length-1].value} of ${waste[waste.length-1].suit}. ` : "Waste empty. ";
-      for (let i=0;i<4;i++) {
-        txt += foundations[i].length ? `Foundation ${i+1}: ${foundations[i][foundations[i].length-1].value} of ${foundations[i][foundations[i].length-1].suit}. ` : `Foundation ${i+1}: empty. `;
+
+      describeBoard() {
+        let description = `Move ${this.moves}. Score: ${this.score}. `;
+        
+        description += `Deck: ${this.deck.length} cards. `;
+        
+        if (this.waste.length > 0) {
+          const topWaste = this.waste[this.waste.length - 1];
+          description += `Waste: ${topWaste.rank} of ${topWaste.suit}. `;
+        } else {
+          description += `Waste: empty. `;
+        }
+        
+        const foundationCards = this.foundations.reduce((sum, pile) => sum + pile.length, 0);
+        description += `Foundations: ${foundationCards} cards. `;
+        
+        description += `Columns: `;
+        for (let i = 0; i < 7; i++) {
+          const col = this.tableau[i];
+          if (col.length === 0) {
+            description += `${i + 1}: empty. `;
+          } else {
+            const topCard = col[col.length - 1];
+            if (topCard.faceUp) {
+              description += `${i + 1}: ${topCard.rank} of ${topCard.suit}. `;
+            } else {
+              description += `${i + 1}: face down. `;
+            }
+          }
+        }
+
+        speak(description);
       }
-      for (let i=0;i<7;i++) {
-        let top = tableau[i].filter(c=>c.faceUp);
-        txt += top.length ? `Tableau ${i+1} top: ${top[top.length-1].value} of ${top[top.length-1].suit}. ` : `Tableau ${i+1}: empty. `;
+
+      moveCard(fromCol, toCol) {
+        if (fromCol < 0 || fromCol >= 7 || toCol < 0 || toCol >= 7) {
+          speak('Invalid column numbers. Use 1 through 7.');
+          return false;
+        }
+
+        if (this.tableau[fromCol].length === 0) {
+          speak(`Column ${fromCol + 1} is empty.`);
+          return false;
+        }
+
+        const card = this.tableau[fromCol][this.tableau[fromCol].length - 1];
+        if (!card.faceUp) {
+          speak(`Top card in column ${fromCol + 1} is face down.`);
+          return false;
+        }
+
+        if (this.tableau[toCol].length === 0) {
+          if (card.rank !== 'King') {
+            speak(`Only Kings can go in empty columns. Card is ${card.rank}.`);
+            return false;
+          }
+        } else {
+          const targetCard = this.tableau[toCol][this.tableau[toCol].length - 1];
+          if (card.color === targetCard.color || card.value !== targetCard.value - 1) {
+            speak(`Cannot place ${card.rank} on ${targetCard.rank}.`);
+            return false;
+          }
+        }
+
+        const movedCard = this.tableau[fromCol].pop();
+        this.tableau[toCol].push(movedCard);
+        this.moves++;
+        this.score += 5;
+
+        let moveDescription = `Moved ${movedCard.rank} of ${movedCard.suit} from column ${fromCol + 1} to column ${toCol + 1}.`;
+
+        if (this.tableau[fromCol].length > 0) {
+          const nextCard = this.tableau[fromCol][this.tableau[fromCol].length - 1];
+          if (!nextCard.faceUp) {
+            nextCard.faceUp = true;
+            moveDescription += ` Flipped ${nextCard.rank} of ${nextCard.suit}.`;
+            this.score += 5;
+          }
+        }
+
+        speak(moveDescription);
+        this.checkWin();
+        return true;
       }
-      speak(txt);
-    }
-    function updateUI() {
-      status.textContent = `Score: ${score} | Undos: ${undosLeft}`;
-      status.classList.remove('hidden');
-      boardEl.classList.remove('hidden');
-      stockEl.textContent = `Stock: ${stock.length} card${stock.length===1?'':'s'}`;
-      wasteEl.textContent = waste.length ? `Waste: ${waste[waste.length-1].value} of ${waste[waste.length-1].suit}` : 'Waste: empty';
-      foundationsEl.textContent = foundations.map((f,i)=>f.length?`F${i+1}: ${f[f.length-1].value} of ${f[f.length-1].suit}`:`F${i+1}: empty`).join(' | ');
-      tableauEl.textContent = tableau.map((t,i)=>{
-        let up = t.filter(c=>c.faceUp);
-        return up.length?`T${i+1}: ${up[up.length-1].value} of ${up[up.length-1].suit}`:`T${i+1}: empty`;
-      }).join(' | ');
-    }
-    function resetGame() {
-      gameInProgress = false;
-      boardEl.classList.add('hidden');
-      status.classList.add('hidden');
-      msg.textContent = "Say 'start game' or tap Start.";
+
+      wasteToTableau(toCol) {
+        if (toCol < 0 || toCol >= 7) {
+          speak('Invalid column number.');
+          return false;
+        }
+
+        if (this.waste.length === 0) {
+          speak('Waste pile is empty.');
+          return false;
+        }
+
+        const wasteCard = this.waste[this.waste.length - 1];
+        
+        if (this.tableau[toCol].length === 0) {
+          if (wasteCard.rank !== 'King') {
+            speak(`Only Kings go in empty columns. Waste card is ${wasteCard.rank}.`);
+            return false;
+          }
+        } else {
+          const topCard = this.tableau[toCol][this.tableau[toCol].length - 1];
+          if (wasteCard.color === topCard.color || wasteCard.value !== topCard.value - 1) {
+            speak(`Cannot place ${wasteCard.rank} on ${topCard.rank}.`);
+            return false;
+          }
+        }
+
+        const card = this.waste.pop();
+        this.tableau[toCol].push(card);
+        this.moves++;
+        this.score += 5;
+        
+        speak(`Moved ${card.rank} of ${card.suit} from waste to column ${toCol + 1}.`);
+        return true;
+      }
+
+      wasteToFoundation() {
+        if (this.waste.length === 0) {
+          speak('Waste pile is empty.');
+          return false;
+        }
+
+        const card = this.waste[this.waste.length - 1];
+        const foundationIndex = ['Spades', 'Hearts', 'Diamonds', 'Clubs'].indexOf(card.suit);
+        const foundation = this.foundations[foundationIndex];
+
+        if (foundation.length === 0 && card.rank !== 'Ace') {
+          speak(`Foundations start with Aces. Waste card is ${card.rank}.`);
+          return false;
+        }
+
+        if (foundation.length > 0) {
+          const topFoundation = foundation[foundation.length - 1];
+          if (card.value !== topFoundation.value + 1) {
+            speak(`Cannot place ${card.rank} on ${topFoundation.rank} in foundation.`);
+            return false;
+          }
+        }
+
+        const movedCard = this.waste.pop();
+        foundation.push(movedCard);
+        this.moves++;
+        this.score += 10;
+        
+        speak(`Moved ${movedCard.rank} of ${movedCard.suit} to foundation.`);
+        this.checkWin();
+        return true;
+      }
+
+      tableauToFoundation(fromCol) {
+        if (fromCol < 0 || fromCol >= 7) {
+          speak('Invalid column number.');
+          return false;
+        }
+
+        if (this.tableau[fromCol].length === 0) {
+          speak(`Column ${fromCol + 1} is empty.`);
+          return false;
+        }
+
+        const card = this.tableau[fromCol][this.tableau[fromCol].length - 1];
+        if (!card.faceUp) {
+          speak(`Top card is face down.`);
+          return false;
+        }
+
+        const foundationIndex = ['Spades', 'Hearts', 'Diamonds', 'Clubs'].indexOf(card.suit);
+        const foundation = this.foundations[foundationIndex];
+
+        if (foundation.length === 0 && card.rank !== 'Ace') {
+          speak(`Foundations start with Aces. Card is ${card.rank}.`);
+          return false;
+        }
+
+        if (foundation.length > 0) {
+          const topFoundation = foundation[foundation.length - 1];
+          if (card.value !== topFoundation.value + 1) {
+            speak(`Cannot place ${card.rank} on ${topFoundation.rank}.`);
+            return false;
+          }
+        }
+
+        const movedCard = this.tableau[fromCol].pop();
+        foundation.push(movedCard);
+        this.moves++;
+        this.score += 10;
+
+        let moveDescription = `Moved ${movedCard.rank} of ${movedCard.suit} to foundation.`;
+
+        if (this.tableau[fromCol].length > 0) {
+          const nextCard = this.tableau[fromCol][this.tableau[fromCol].length - 1];
+          if (!nextCard.faceUp) {
+            nextCard.faceUp = true;
+            moveDescription += ` Flipped ${nextCard.rank} of ${nextCard.suit}.`;
+            this.score += 5;
+          }
+        }
+
+        speak(moveDescription);
+        this.checkWin();
+        return true;
+      }
+
+      getHint() {
+        // Check for foundation moves first
+        for (let col = 0; col < 7; col++) {
+          if (this.tableau[col].length > 0) {
+            const card = this.tableau[col][this.tableau[col].length - 1];
+            if (card.faceUp) {
+              const foundationIndex = ['Spades', 'Hearts', 'Diamonds', 'Clubs'].indexOf(card.suit);
+              const foundation = this.foundations[foundationIndex];
+              
+              if ((foundation.length === 0 && card.rank === 'Ace') ||
+                  (foundation.length > 0 && card.value === foundation[foundation.length - 1].value + 1)) {
+                speak(`Hint: Move ${card.rank} of ${card.suit} from column ${col + 1} to foundation.`);
+                return;
+              }
+            }
+          }
+        }
+
+        // Check waste to foundation
+        if (this.waste.length > 0) {
+          const card = this.waste[this.waste.length - 1];
+          const foundationIndex = ['Spades', 'Hearts', 'Diamonds', 'Clubs'].indexOf(card.suit);
+          const foundation = this.foundations[foundationIndex];
+          
+          if ((foundation.length === 0 && card.rank === 'Ace') ||
+              (foundation.length > 0 && card.value === foundation[foundation.length - 1].value + 1)) {
+            speak(`Hint: Move ${card.rank} of ${card.suit} from waste to foundation.`);
+            return;
+          }
+        }
+
+        // Check tableau moves
+        for (let from = 0; from < 7; from++) {
+          if (this.tableau[from].length > 0) {
+            const card = this.tableau[from][this.tableau[from].length - 1];
+            if (card.faceUp) {
+              for (let to = 0; to < 7; to++) {
+                if (from !== to && this.canMoveTableau(from, to)) {
+                  speak(`Hint: Move ${card.rank} of ${card.suit} from column ${from + 1} to column ${to + 1}.`);
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+        if (this.deck.length > 0) {
+          speak("Hint: Try drawing a card.");
+        } else {
+          speak("No obvious moves available.");
+        }
+      }
+
+      canMoveTableau(fromCol, toCol) {
+        if (this.tableau[fromCol].length === 0) return false;
+        
+        const fromCard = this.tableau[fromCol][this.tableau[fromCol].length - 1];
+        if (!fromCard.faceUp) return false;
+        
+        if (this.tableau[toCol].length === 0) {
+          return fromCard.rank === 'King';
+        }
+        
+        const toCard = this.tableau[toCol][this.tableau[toCol].length - 1];
+        return fromCard.color !== toCard.color && fromCard.value === toCard.value - 1;
+      }
+
+      checkWin() {
+        const totalFoundationCards = this.foundations.reduce((sum, pile) => sum + pile.length, 0);
+        if (totalFoundationCards === 52) {
+          speak(`Congratulations! You won in ${this.moves} moves with ${this.score} points!`, true);
+          announceToScreenReader('Game won!');
+        }
+      }
     }
 
-    // Voice commands
-    function processCommand(cmd) {
-      cmd = cmd.toLowerCase();
-      if (cmd.includes('start')) {
-        deal();
-      } else if (cmd.includes('draw')) {
-        if (gameInProgress) drawCard(); else speak("Start game first.");
-      } else if (cmd.includes('undo')) {
-        if (gameInProgress) undo(); else speak("Start game first.");
-      } else if (cmd.includes('describe')) {
-        if (gameInProgress) describeBoard(); else speak("Start game first.");
-      } else if (cmd.includes('help')) {
-        speak("Say start game, draw card, move card, undo, describe board, save game, quit game.");
-      } else if (cmd.includes('quit')) {
-        resetGame();
-        speak("Game ended.");
-      } else {
-        speak("Command not recognized. Say help.");
-        playSound('error');
-      }
-    }
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('commandInput');
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          executeTypedCommand();
+        }
+      });
 
-    // Speech recognition
-    function startListening() {
-      if (!SpeechRecognition) {
-        speak("Voice control requires Chrome or Edge.");
-        return;
-      }
-      if (!recognition) {
-        recognition = new SpeechRecognition();
-        recognition.lang = 'en-US';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.onresult = (e) => {
-          let transcript = e.results[0][0].transcript;
-          processCommand(transcript);
-          isListening = false;
-          msg.textContent = "Say a command or tap a button.";
-        };
-        recognition.onerror = (e) => {
-          speak("Speech error: " + e.error);
-          isListening = false;
-        };
-        recognition.onstart = () => { isListening = true; msg.textContent = "Listening..."; };
-        recognition.onend = () => { isListening = false; };
-      }
-      recognition.start();
-    }
-
-    // Button handlers
-    startBtn.onclick = () => { deal(); };
-    drawBtn.onclick = () => { if (gameInProgress) drawCard(); };
-    undoBtn.onclick = () => { if (gameInProgress) undo(); };
-    describeBtn.onclick = () => { if (gameInProgress) describeBoard(); };
-
-    // Accessibility: tap anywhere, space/enter to start listening
-    document.body.addEventListener('click', () => {
-      if (!isListening) startListening();
+      announceToScreenReader('Voice Solitaire loaded. Press N for new game.');
+      speak('Voice Solitaire ready. Press N for new game.');
+      
+      input.focus();
     });
-    document.body.addEventListener('keydown', (e) => {
-      if ((e.key===' '||e.key==='Enter') && !isListening) startListening();
-    });
-
-    // On load
-    window.onload = () => {
-      resetGame();
-      msg.textContent = "Say 'start game' or tap Start.";
-    };
   </script>
 </body>
 </html>
